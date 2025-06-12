@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Hidroponik - Monitoring pH & Suhu</title>
+    <style>
+        /* CSS Anda yang sudah ada */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .connected {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .disconnected {
+            background: #f44336;
+            color: white;
+        }
+
+        .connecting {
+            background: #ff9800;
+            color: white;
+        }
+        
+        /* CSS untuk Rating Bintang (BARU atau sesuaikan) */
+        .star-rating-container {
+            text-align: center;
+            margin: 15px 0 25px 0; /* Jarak atas dan bawah */
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .star-rating-container h4 {
+            color: white;
+            font-size: 1.3rem;
+            margin: 0;
+        }
+
+        #star-rating-display {
+            font-size: 1.8rem; /* Ukuran bintang lebih besar */
+            color: #FFD700; /* Warna emas untuk bintang */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        /* ... (sisa CSS Anda) ... */
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px; 
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px;
+            color: white;
+        }
+
+        .ph-icon {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+        }
+
+        .temp-icon {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .ph-value {
+            color: #FF6B6B;
+        }
+
+        .temp-value {
+            color: #4ECDC4;
+        }
+
+        .card-status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .status-normal {
+            background: #E8F5E8;
+            color: #2E7D32;
+        }
+
+        .status-warning {
+            background: #FFF3E0;
+            color: #F57C00;
+        }
+
+        .status-critical {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .led-indicators {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+
+        .led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 0 5px;
+            position: relative;
+        }
+
+        .led-on {
+            background: #4CAF50;
+            box-shadow: 0 0 10px #4CAF50;
+        }
+
+        .led-off {
+            background: #ccc;
+        }
+
+        .led-label {
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .last-update {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+            .card-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🌱 Dashboard Hidroponik</h1>
+            <p>Monitoring pH Air & Suhu Tanaman Cabai</p>
+            <div id="wsConnectionStatus" class="connection-status connecting">
+                🔄 Menghubungkan ke Server Node.js...
+            </div>
+        </div>
+
+        <div class="star-rating-container">
+            <h4>Rating Kesesuaian Total: <span id="star-rating-display">-</span></h4>
+        </div>
+        <div class="cards-container">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon ph-icon">🧪</div>
+                    <div class="card-title">pH Air</div>
+                </div>
+                <div id="phValue" class="card-value ph-value">--</div>
+                <div id="phStatus" class="card-status status-normal">Menunggu data...</div>
+                <div class="led-indicators">
+                    <div>
+                        <div id="ledPhUp" class="led led-off"></div>
+                        <div class="led-label">pH UP</div>
+                    </div>
+                    <div>
+                        <div id="ledPhDown" class="led led-off"></div>
+                        <div class="led-label">pH DOWN</div>
+                    </div>
+                </div>
+                <div id="phLastUpdate" class="last-update">Belum ada data</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon temp-icon">🌡️</div>
+                    <div class="card-title">Suhu Air</div>
+                </div>
+                <div id="tempValue" class="card-value temp-value">--°C</div>
+                <div id="humidityValue" style="text-align: center; font-size: 1.2rem; color: #555; margin: 10px 0;">
+                    Kelembaban: <span style="font-weight: bold;">--%</span>
+                </div>
+                <div id="tempStatus" class="card-status status-normal">Menunggu data...</div>
+                <div class="led-indicators">
+                    <div>
+                        <div id="ledTempHeat" class="led led-off"></div>
+                        <div class="led-label">HEAT</div>
+                    </div>
+                    <div>
+                        <div id="ledTempCool" class="led led-off"></div>
+                        <div class="led-label">COOL</div>
+                    </div>
+                </div>
+                <div id="tempLastUpdate" class="last-update">Belum ada data</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===> AWAL JAVASCRIPT ANDA DENGAN PENAMBAHAN CONSOLE.LOG <===
+        const ngrokHostname = "https://330f-114-10-47-181.ngrok-free.app"; // Pastikan ini masih valid atau ganti localhost jika server di mesin yg sama
+        const NODEJS_WS_URL = `wss://${ngrokHostname}`;  // Gunakan wss:// jika ngrok Anda melayani HTTPS
+        // Jika server Node.js Anda berjalan lokal tanpa HTTPS (misal, ws://localhost:8080):
+        // const NODEJS_WS_URL = 'ws://localhost:8080'; 
+
+        const TOPIC_PH_FROM_NODE = 'uzairheebat@gmail.com/pH';
+        const TOPIC_SUHU_FROM_NODE = 'uzairheebat@gmail.com/Suhu Air';
+
+        let wsClient;
+        const wsStatusElement = document.getElementById('wsConnectionStatus');
+
+        // Variabel untuk menyimpan status ideal terakhir untuk rating bintang
+        let isPhIdealCurrent = null;  // null berarti belum ada data
+        let isSuhuIdealCurrent = null;
+
+        function updateWSConnectionStatus(statusClass, message) {
+            wsStatusElement.className = `connection-status ${statusClass}`;
+            wsStatusElement.innerHTML = message;
+        }
+
+        function handleWebSocketMessage(event) {
+            // TAMBAHAN: Log data mentah yang diterima dari WebSocket
+            console.log("RAW Pesan diterima dari WS: ", event.data); 
+            try {
+                const dataMessage = JSON.parse(event.data);
+                const topic = dataMessage.topic;
+                const payload = dataMessage.payload;
+
+                // TAMBAHAN: Log pesan yang sudah diparsing dan payloadnya
+                console.log("Parsed Pesan:", dataMessage); 
+                console.log("Payload untuk topik '" + topic + "':", payload); 
+
+                if (topic === TOPIC_PH_FROM_NODE) {
+                    updatePHData(payload);
+                    // TAMBAHAN: Log detail untuk phIdeal
+                    console.log("Mengecek payload.phIdeal:", payload.phIdeal, "(tipe:", typeof payload.phIdeal, ")");
+                    if (typeof payload.phIdeal !== 'undefined') {
+                        isPhIdealCurrent = payload.phIdeal;
+                        console.log("isPhIdealCurrent diupdate menjadi:", isPhIdealCurrent, "(Tipe:", typeof isPhIdealCurrent, ")");
+                    } else {
+                        console.warn("payload.phIdeal TIDAK DITEMUKAN atau undefined dalam data pH.");
+                    }
+                } else if (topic === TOPIC_SUHU_FROM_NODE) {
+                    updateSuhuData(payload);
+                    // TAMBAHAN: Log detail untuk suhuIdeal
+                    console.log("Mengecek payload.suhuIdeal:", payload.suhuIdeal, "(tipe:", typeof payload.suhuIdeal, ")");
+                    if (typeof payload.suhuIdeal !== 'undefined') {
+                        isSuhuIdealCurrent = payload.suhuIdeal;
+                        console.log("isSuhuIdealCurrent diupdate menjadi:", isSuhuIdealCurrent, "(Tipe:", typeof isSuhuIdealCurrent, ")");
+                    } else {
+                        console.warn("payload.suhuIdeal TIDAK DITEMUKAN atau undefined dalam data Suhu.");
+                    }
+                }
+                // Panggil update rating bintang setiap ada pesan baru yang relevan
+                updateStarRatingDisplay();
+
+            } catch (error) {
+                console.error('Error parsing JSON dari WebSocket atau dalam handleWebSocketMessage:', error);
+            }
+        }
+
+        function updatePHData(phData) {
+            document.getElementById('phValue').textContent = parseFloat(phData.ph).toFixed(1);
+            const statusElement = document.getElementById('phStatus');
+            statusElement.textContent = phData.status;
+            if (phData.status.toLowerCase().includes('kritis')) statusElement.className = 'card-status status-critical';
+            else if (phData.status.toLowerCase().includes('rendah') || phData.status.toLowerCase().includes('tinggi')) statusElement.className = 'card-status status-warning';
+            else statusElement.className = 'card-status status-normal';
+            
+            document.getElementById('ledPhUp').className = phData.led_ph_up ? 'led led-on' : 'led led-off';
+            document.getElementById('ledPhDown').className = phData.led_ph_down ? 'led led-on' : 'led led-off';
+            document.getElementById('phLastUpdate').textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID');
+        }
+
+        function updateSuhuData(suhuData) {
+            document.getElementById('tempValue').textContent = parseFloat(suhuData.suhu).toFixed(1) + '°C';
+            
+            const humidityElement = document.getElementById('humidityValue');
+            if (humidityElement && typeof suhuData.kelembaban !== 'undefined' && !isNaN(parseFloat(suhuData.kelembaban))) {
+                 humidityElement.innerHTML = 'Kelembaban: <span style="font-weight: bold;">' + parseFloat(suhuData.kelembaban).toFixed(1) + '%</span>';
+            } else if (humidityElement) {
+                humidityElement.innerHTML = 'Kelembaban: <span style="font-weight: bold;">--%</span>';
+            }
+
+            const statusElement = document.getElementById('tempStatus');
+            statusElement.textContent = suhuData.status;
+            if (suhuData.status.toLowerCase().includes('rendah') || suhuData.status.toLowerCase().includes('tinggi')) statusElement.className = 'card-status status-warning';
+            else statusElement.className = 'card-status status-normal';
+
+            document.getElementById('ledTempHeat').className = suhuData.led_temp_heat ? 'led led-on' : 'led led-off';
+            document.getElementById('ledTempCool').className = suhuData.led_temp_cool ? 'led led-on' : 'led led-off';
+            document.getElementById('tempLastUpdate').textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID');
+        }
+
+        function updateStarRatingDisplay() {
+            // TAMBAHAN: Log status saat fungsi dipanggil
+            console.log("Memanggil updateStarRatingDisplay. Status saat ini - isPhIdealCurrent:", isPhIdealCurrent, "isSuhuIdealCurrent:", isSuhuIdealCurrent); 
+
+            const starElement = document.getElementById('star-rating-display');
+            if (!starElement) {
+                console.error("Elemen 'star-rating-display' tidak ditemukan."); // Error jika elemen tidak ada
+                return;
+            }
+
+            if (isPhIdealCurrent === null || isSuhuIdealCurrent === null) {
+                starElement.textContent = "Menunggu data...";
+                // TAMBAHAN: Log saat menunggu data
+                console.log("Rating Bintang: Masih menunggu salah satu atau kedua data ideal (pH/Suhu).");
+                return;
+            }
+
+            let starsToDisplay = "";
+            if (isPhIdealCurrent && isSuhuIdealCurrent) { // Keduanya SESUAI
+                starsToDisplay = "⭐⭐⭐";
+            } else if ((isPhIdealCurrent && !isSuhuIdealCurrent) || (!isPhIdealCurrent && isSuhuIdealCurrent)) { // Salah satu SESUAI
+                starsToDisplay = "⭐⭐";
+            } else if (!isPhIdealCurrent && !isSuhuIdealCurrent) { // Keduanya TIDAK SESUAI
+                starsToDisplay = "⭐";
+            } else {
+                starsToDisplay = "-"; // Kondisi tidak terdefinisi
+            }
+            starElement.textContent = starsToDisplay;
+            // TAMBAHAN: Log rating bintang yang diperbarui
+            console.log(`Rating Bintang diperbarui menjadi: ${starsToDisplay}`);
+        }
+
+
+        function initWebSocket() {
+            updateWSConnectionStatus('connecting', '🔄 Menghubungkan ke Node.js Server...');
+            console.log("Mencoba koneksi WebSocket ke:", NODEJS_WS_URL); // Log URL koneksi
+            wsClient = new WebSocket(NODEJS_WS_URL);
+
+            wsClient.onopen = function() {
+                console.log("Terhubung ke Node.js WebSocket Server!");
+                updateWSConnectionStatus('connected', '✅ Terhubung ke Node.js Server');
+                updateStarRatingDisplay(); 
+            };
+            wsClient.onmessage = handleWebSocketMessage;
+            wsClient.onclose = function(event) { // Tambahkan parameter event untuk info lebih
+                console.log("Koneksi WebSocket ke Node.js Server terputus. Kode:", event.code, "Alasan:", event.reason);
+                updateWSConnectionStatus('disconnected', '❌ Koneksi ke Node.js Server Terputus. Mencoba lagi...');
+                
+                const starElement = document.getElementById('star-rating-display');
+                if (starElement) starElement.textContent = "Terputus";
+                isPhIdealCurrent = null; 
+                isSuhuIdealCurrent = null;
+
+                setTimeout(initWebSocket, 5000); 
+            };
+            wsClient.onerror = function(error) {
+                console.error("WebSocket Error: ", error);
+                updateWSConnectionStatus('disconnected', '❌ Error WebSocket. Periksa Ngrok/Server & Konsol.');
+                
+                const starElement = document.getElementById('star-rating-display');
+                if (starElement) starElement.textContent = "Error Koneksi";
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initWebSocket();
+        });
+        // ===> AKHIR JAVASCRIPT ANDA DENGAN PENAMBAHAN CONSOLE.LOG <===
+    </script>
+</body>
+</html>
